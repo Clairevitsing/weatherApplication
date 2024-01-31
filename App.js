@@ -1,39 +1,45 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
-import { Platform, Image, SafeAreaView, Text, View, StyleSheet } from 'react-native';
+import { Platform, Image, SafeAreaView, Text, View, StyleSheet, ActivityIndicator,ScrollView  } from 'react-native';
 import * as Location from 'expo-location';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import Axios from "axios";
+
 
 export default function App() {
   const [location, setLocation] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
   const [forecastData, setForecastData] = useState(null);
-  const [loaded, setLoaded] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   const API_KEY = "365d512b61c1fb87de60b375b3c59d20";
 
 
   useEffect(() => {
-    const DataLocation = async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+    const getCoordinates = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setErrorMsg("Permission to access location was denied");
         return;
       }
-      let location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({});
       setLocation(location);
       console.log(location, "lyon");
+      getForecastData(location);
+      
     };
-    DataLocation();
+    getCoordinates();
   }, []);
 
+ 
 
   async function fetchWeatherData(location) {
     let lat = location.coords.latitude;
     let long = location.coords.longitude;
     console.log(lat, long);
-    setLoaded(false);
-    const weatherAPI = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&appid=${API_KEY}&units=metric`;
+    setLoading(false);
+    const weatherAPI = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&appid=${API_KEY}&lang=fr&units=metric`;
     console.log(weatherAPI);
 
 
@@ -46,152 +52,105 @@ export default function App() {
       } else {
         setWeatherData(null);
       }
-      setLoaded(true);
+      setLoading(true);
     } catch (error) {
       console.log(error);
     }
   }
 
-  async function fetchForecastData(location) {
-    let lat = location.coords.latitude;
-    let long = location.coords.longitude;
-    console.log(lat, long);
-    setLoaded(false);
-    const forecastAPI = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${long}&appid=${API_KEY}`;
-    console.log("function fetch forecast :",forecastAPI);
-
-  //   try {
-  //     const forecastResponse = await fetch(forecastAPI);
-  //     if (forecastResponse.status == 200) {
-  //       const forecastDataJson = await forecastResponse.json();
-  //       const forecastData = json_decode(forecastDataJson);
-  //       console.log("forecastData:", forecastData);
-  //       setForecastData(forecastData);
-  //     } else {
-  //       setForecastData(null);
-  //     }
-  //     setLoaded(true);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
-
-  try {
-    const forecastResponse = await fetch(forecastAPI);
-    if (forecastResponse.status === 200) {
-      const forecastDataJson = await forecastResponse.json();
-      const forecastData = Object.values(forecastDataJson);
-      console.log("forecastDataArray:", forecastData);
-      setForecastData(forecastData);
-    } else {
-      setForecastData(null);
-    }
-    setLoaded(true);
-  } catch (error) {
-    console.log(error);
-  }
-}
- 
+  
   useEffect(() => {
     fetchWeatherData(location);
     console.log("weatherData:", weatherData);
   }, [location]);
 
 
-  useEffect(() => {
-     
-    fetchForecastData(location);
-  
-    if (forecastData !== null ) { 
-      console.log("FormatForecastData:", forecastData);
-      // console.log("FormatForecastDataList:", forecastData.list);
-      
-      const formatForecastData = forecastData[3]?.map(forecast => {
-        console.log(" forecastData[3]:", forecastData[3]);
-        console.log(" forecastData.dt:", forecastData[3][0].dt_txt);
-        const date = new Date(forecast.dt * 1000);
-        
-        console.log(" date:", date);
-        console.log("hour:", date.getHours())
-        console.log("temp:", Math.round(forecast.main.temp))
-         console.log("icon:", forecast.weather[0].icon)
-      return {
-        date: date,
-        hour: date.getHours(),
-        temp: Math.round(forecast.main.temp),
-        icon: forecast.weather[0].icon,
-        name: format(date,"EEEE",{locale:fr})
-      };
-    });
-      console.log("FormatForecastData:", formatForecastData);
-      setForecastData(formatForecastData);
-   }
-}, [location]);
+  function changeTimestamp(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
 
 
+  const getForecastData = async (location) => {
+
+    try {
+      let lat = location.coords.latitude;
+      let long = location.coords.longitude;
+      const forecastReponse = await Axios.get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${long}&appid=365d512b61c1fb87de60b375b3c59d20&lang=fr&units=metric`);
+      setForecastData(forecastReponse.data.list);
+      console.log("forecastData:", forecastData);
+      setLoading(false);
+    } catch (e) {
+      console.log("error getting forecast data");
+      setForecastData(null); 
+      setLoading(true);
+    }
+  }
   
 
-  // useEffect(() => {
-  //   fetchForecastData(location);
-  //   console.log("weatherData:", forecastData);
-  // }, [location]);
-      
-  
-  if (weatherData !== null && forecastData !== null) {
-
-    // let imageUrl = "https://openweathermap.org/img/wn/01d@4x.png";
-    
-    let temp = Math.round(weatherData.main.temp);
-    console.log(temp);
-    let weather = weatherData.weather[0].icon;
-    console.log(weather);
-    let imageUrl = `https://openweathermap.org/img/wn/${weather}@4x.png`;
-    console.log(imageUrl);
-
-    return (
-      <SafeAreaView style={styles.weatherContainer}>
-        <View>
-        <Text style={styles.location}>{weatherData.name}</Text>
-         <Image
-          style={styles.tinyLogo}
-          source={{ uri: imageUrl }}
-         />
-        <Text style={styles.temperature}>{temp} °C</Text>
-          <Text style={styles.description}> {weatherData.weather[0].description} </Text>
-        </View>
-        
-        <View>
-          <Text style={styles.forecast}> les Forecast</Text>
-          <View>
-            {
-              forecastData?.map((forecast, index) => (
-                <View key={index} style={styles.forecastItem}>
-
-                  <Text>{forecast.name}</Text>
-                  <Text>{forecast.hour}</Text>
-                  <Text>{forecast.icon}</Text>
-                </View>
-              ))
-            }           
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  } else {
+  if (!weatherData || !forecastData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.text}>The site is loading</Text>
+        <Text style={styles.text}>Loading...</Text>
       </View>
-    )
+    );
   }
+
+
+  
+  let temp = Math.round(weatherData.main.temp);
+  console.log(temp);
+  let weather = weatherData.weather[0].icon;
+  console.log(weather);
+  let imageUrl = `https://openweathermap.org/img/wn/${weather}@4x.png`;
+  console.log(imageUrl);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.weatherContainer}>
+        <Text style={styles.location}>{weatherData.name}</Text>
+        <Image
+          style={styles.tinyLogo}
+          source={{ uri: imageUrl }}
+        />
+        <Text style={styles.temperature}>{temp} °C</Text>
+        <Text style={styles.description}>{weatherData.weather[0].description}</Text>
+      </View>
+
+      {forecastData && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
+          {forecastData.map((forecast, index) => (
+            <View key={index} style={styles.forecastItem}>
+              <Text style={styles.forecastText}>{changeTimestamp(forecast.dt)}</Text>
+              <Image
+                source={{ uri: `http://openweathermap.org/img/wn/${forecast.weather[0].icon}@2x.png` }}
+                style={styles.forecastIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.forecastTemp}>{Math.round(forecast.main.temp)}°C</Text>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      <StatusBar style="auto" />
+    </SafeAreaView>
+  );
 }
 
   const styles = StyleSheet.create({
-    weatherContainer: {
+    container: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
       padding: 20,
+      
+    },
+
+    weatherContainer: {
+      height:"65%",
     },
     location: {
       fontSize: 18,
@@ -210,6 +169,36 @@ export default function App() {
     tinyLogo: {
         width: 80,
         height: 80,
-      },
+    },
+    verticalView: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 10,
+    },
+
+    scroll: {
+      width: "100%",
+      height:"35%",
+    },
+    forecastItem: {
+      backgroundColor: "white",
+      height: 140, 
+      width: 75,
+      paddingVertical: 6,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 10,
+      borderRadius: 50
+    },
+
+    forecastIcon: {
+      width: 50,
+      height: 50
+    },
+    forecastTemp: {
+      fontSize: 18,
+      fontWeigner: 'bold',
+    }
+    
   });
 
