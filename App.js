@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
-import { ImageBackground, Image, SafeAreaView, Text, View, StyleSheet, ActivityIndicator,ScrollView  } from 'react-native';
+import { ImageBackground, Image, SafeAreaView, Text, View, StyleSheet, ActivityIndicator, ScrollView  } from 'react-native';
 import * as Location from 'expo-location';
 import Axios from "axios";
 
@@ -58,7 +58,7 @@ export default function App() {
 
   
   useEffect(() => {
-    fetchWeatherData(location);
+   location !== null &&   fetchWeatherData(location);
     console.log("weatherData:", weatherData);
   }, [location]);
 
@@ -76,9 +76,7 @@ export default function App() {
   const getForecastData = async (location) => {
 
     try {
-      let lat = location.coords.latitude;
-      let long = location.coords.longitude;
-      const forecastReponse = await Axios.get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${long}&appid=365d512b61c1fb87de60b375b3c59d20&lang=fr&units=metric`);
+      const forecastReponse = await Axios.get(`https://api.openweathermap.org/data/2.5/forecast?lat=${location.coords.latitude}&lon=${location.coords.longitude}&appid=365d512b61c1fb87de60b375b3c59d20&lang=fr&units=metric`);
       setForecastData(forecastReponse.data.list);
       console.log("forecastData:", forecastData);
       setLoading(false);
@@ -88,16 +86,14 @@ export default function App() {
       setLoading(true);
     }
   }
-  
 
   if (!weatherData || !forecastData) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.text}>Loading...</Text>
+      <View style={[styles.loadingContainer,  styles.horizontal]}>
+        <ActivityIndicator size="large" color="#0000ff"/>
       </View>
     );
   }
-
 
   
   let temp = Math.round(weatherData.main.temp);
@@ -109,7 +105,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ImageBackground source={require('./assets/images/home.jpg')} resizeMode='cover' style={styles.backgroundImage}>
+      <ImageBackground source={require('./assets/images/home.webp')} resizeMode='cover' style={styles.backgroundImage}>
       <View style={styles.weatherContainer}>
         <Text style={styles.location}>{weatherData.name}</Text>
         <Image
@@ -168,11 +164,14 @@ export default function App() {
       color: '#fff',
       paddingHorizontal: 10,
     },
-    errorContainer: {
+    loadingContainer:{
       flex: 1,
-      alignItems: 'center',
       justifyContent: 'center',
-      padding: 20,
+    },
+    horizontal: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      padding: 10,
     },
     text: {
       fontSize: 18,
