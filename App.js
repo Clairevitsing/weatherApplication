@@ -1,9 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
-import { Platform, Image, SafeAreaView, Text, View, StyleSheet, ActivityIndicator,ScrollView  } from 'react-native';
+import { ImageBackground, Image, SafeAreaView, Text, View, StyleSheet, ActivityIndicator,ScrollView  } from 'react-native';
 import * as Location from 'expo-location';
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import Axios from "axios";
 
 
@@ -65,13 +63,15 @@ export default function App() {
   }, [location]);
 
 
-  function changeTimestamp(timestamp) {
+ function changeTimestamp(timestamp) {
     const date = new Date(timestamp * 1000);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-
+    return `${month}-${day} ${hours}:${minutes}`;
+}
 
   const getForecastData = async (location) => {
 
@@ -109,10 +109,11 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ImageBackground source={require('./assets/images/home.jpg')} resizeMode='cover' style={styles.backgroundImage}>
       <View style={styles.weatherContainer}>
         <Text style={styles.location}>{weatherData.name}</Text>
         <Image
-          style={styles.tinyLogo}
+          style={styles.logo}
           source={{ uri: imageUrl }}
         />
         <Text style={styles.temperature}>{temp} °C</Text>
@@ -123,7 +124,7 @@ export default function App() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
           {forecastData.map((forecast, index) => (
             <View key={index} style={styles.forecastItem}>
-              <Text style={styles.forecastText}>{changeTimestamp(forecast.dt)}</Text>
+              <Text style={styles.forecastTime}>{changeTimestamp(forecast.dt)}</Text>
               <Image
                 source={{ uri: `http://openweathermap.org/img/wn/${forecast.weather[0].icon}@2x.png` }}
                 style={styles.forecastIcon}
@@ -132,10 +133,12 @@ export default function App() {
               <Text style={styles.forecastTemp}>{Math.round(forecast.main.temp)}°C</Text>
             </View>
           ))}
+            
         </ScrollView>
       )}
 
-      <StatusBar style="auto" />
+        <StatusBar style="auto" />
+        </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -148,13 +151,22 @@ export default function App() {
       padding: 20,
       
     },
-
+    backgroundImage: {
+      flex: 1,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     weatherContainer: {
-      height:"65%",
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: "65%",
     },
     location: {
-      fontSize: 18,
+      fontSize: 28,
       textAlign: 'center',
+      color: '#fff',
+      paddingHorizontal: 10,
     },
     errorContainer: {
       flex: 1,
@@ -166,9 +178,20 @@ export default function App() {
       fontSize: 18,
       textAlign: 'center',
     },
-    tinyLogo: {
-        width: 80,
-        height: 80,
+    logo: {
+        width: 180,
+        height: 160,
+    },
+    temperature: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    description: {
+      marginTop: 10,
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
     },
     verticalView: {
       flexDirection: 'row',
@@ -180,11 +203,12 @@ export default function App() {
       width: "100%",
       height:"35%",
     },
+
     forecastItem: {
       backgroundColor: "white",
-      height: 140, 
-      width: 75,
-      paddingVertical: 6,
+      height: 200, 
+      width: 120,
+      padding: 10,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 10,
@@ -195,9 +219,13 @@ export default function App() {
       width: 50,
       height: 50
     },
+
+    forecastTime: {
+      fontSize: 18,
+    },
+    
     forecastTemp: {
       fontSize: 18,
-      fontWeigner: 'bold',
     }
     
   });
